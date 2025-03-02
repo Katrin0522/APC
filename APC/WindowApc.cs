@@ -3,15 +3,15 @@ using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 
-namespace PlayAnimationKat
+namespace APC
 {
-    public class WindowAnimKat: EditorWindow
+    public class WindowApc: EditorWindow
     {
         private AnimationClip animationSource;
         private GameObject AvatarObj;
         private GameObject TempAvatar;
         private AnimationWindow animationWindow;
-        private ComponentAnimKatStarter controllerAnimKat;
+        private ComponentApc _controllerApc;
         
         private int sliderValue = -1;
         private int prevSliderValue = 0;
@@ -31,11 +31,11 @@ namespace PlayAnimationKat
         private const int buttonSize = 50;
         
         
-        [MenuItem("KattyTools/PlayAnimationAvatar")]
+        [MenuItem("Tools/APC-Tool")]
         private static void Init()
         {
             var inspWndType = typeof(SceneView);
-            var window = GetWindow<WindowAnimKat>(inspWndType);
+            var window = GetWindow<WindowApc>(inspWndType);
         }
 
         private void OnGUI()
@@ -105,16 +105,16 @@ namespace PlayAnimationKat
                     prevSliderValue = sliderValue;
                     if (EditorApplication.isPlaying)
                     {
-                        if (controllerAnimKat)
+                        if (_controllerApc)
                         {
-                            controllerAnimKat.SelectedFrame = sliderValue;
+                            _controllerApc.selectedFrame = sliderValue;
                         }
                         else
                         {
-                            controllerAnimKat = AvatarObj.GetComponent<ComponentAnimKatStarter>();
+                            _controllerApc = AvatarObj.GetComponent<ComponentApc>();
                             Debug.Log("Нет контроллера аватара, получаем");
-                            controllerAnimKat.AllFrames = allFrames;
-                            controllerAnimKat.SelectedFrame = sliderValue;
+                            _controllerApc.allFrames = allFrames;
+                            _controllerApc.selectedFrame = sliderValue;
                         }
                     }
                 }
@@ -123,7 +123,7 @@ namespace PlayAnimationKat
                 
                 if (GUILayout.Button("Инициализация анимации"))
                 {
-                    string controllerPath = "Assets/PlayAnimationKat/Temp/customACKAnim.controller";
+                    string controllerPath = "Assets/APC/Temp/customAPCAnim.controller";
                     
                     AnimatorController animatorController = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
                     
@@ -138,11 +138,11 @@ namespace PlayAnimationKat
                         Debug.Log("Animation Clip добавлен в Animator Controller.");
                         AssetDatabase.SaveAssets();
 
-                        ComponentAnimKatStarter component = AvatarObj.GetComponent<ComponentAnimKatStarter>();
+                        ComponentApc component = AvatarObj.GetComponent<ComponentApc>();
 
                         if (component != null)
                         {
-                            Debug.Log("ComponentAnimKatStarter уже существует!");
+                            Debug.Log("ComponentApc уже существует!");
                             isInited = true;
                         }
                         else
@@ -151,7 +151,7 @@ namespace PlayAnimationKat
                             TempAvatar.gameObject.name = $"{TempAvatar.gameObject.name}_Temp";
                             TempAvatar.gameObject.SetActive(false);
                             
-                            AvatarObj.AddComponent<ComponentAnimKatStarter>();
+                            AvatarObj.AddComponent<ComponentApc>();
                             isInited = true;
                         }
                     }
@@ -162,7 +162,7 @@ namespace PlayAnimationKat
                     }
                 }
 
-                if (allFrames != 0 && AvatarObj && (sliderValue != -1) && controllerAnimKat && TempAvatar)
+                if (allFrames != 0 && AvatarObj && (sliderValue != -1) && _controllerApc && TempAvatar)
                 {
                     GUILayout.Space(5);
                     if (GUILayout.Button("Дублировать позу"))
@@ -172,9 +172,9 @@ namespace PlayAnimationKat
                         counterDublicate += 1;
                         copiedObject.gameObject.SetActive(true);
                         copiedObject.gameObject.name = $"{copiedObject.gameObject.name}_{GenerateRandomString(5)}";
-                        var componentCopy = copiedObject.AddComponent<ComponentAnimKatStarter>();
-                        componentCopy.SelectedFrame = sliderValue;
-                        componentCopy.AllFrames = allFrames;
+                        var componentCopy = copiedObject.AddComponent<ComponentApc>();
+                        componentCopy.selectedFrame = sliderValue;
+                        componentCopy.allFrames = allFrames;
                     }
                 }
                 
@@ -204,7 +204,7 @@ namespace PlayAnimationKat
             if (AvatarObj)
             {
                 Debug.Log("Закрывается окно == удаляем следы");
-                DestroyImmediate(AvatarObj.GetComponent<ComponentAnimKatStarter>());
+                DestroyImmediate(AvatarObj.GetComponent<ComponentApc>());
             }
 
             if (TempAvatar)

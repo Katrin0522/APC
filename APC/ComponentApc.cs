@@ -2,19 +2,19 @@
 using UnityEditor.Animations;
 using UnityEngine;
 
-namespace PlayAnimationKat
+namespace APC
 {
-    public class ComponentAnimKatStarter: MonoBehaviour
+    public class ComponentApc: MonoBehaviour
     {
         [SerializeField] private AnimatorController customAnimatorController;
         [SerializeField] private Animator avatarAnimator;
         [SerializeField] private string nameClip;
-        public int SelectedFrame = 0;
-        public int PrevSelectedFrame = 0;
-        public int AllFrames = 0;
+        public int selectedFrame = 0;
+        public int prevSelectedFrame = 0;
+        public int allFrames = 0;
         private void Start()
         {
-            string controllerPath = "Assets/PlayAnimationKat/Temp/customACKAnim.controller";
+            string controllerPath = "Assets/APC/Temp/customAPCAnim.controller";
 
             customAnimatorController = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
 
@@ -29,11 +29,11 @@ namespace PlayAnimationKat
 
         private void Update()
         {
-            if (avatarAnimator != null && !string.IsNullOrEmpty(nameClip) && (PrevSelectedFrame != SelectedFrame) && (AllFrames != 0))
+            if (avatarAnimator != null && !string.IsNullOrEmpty(nameClip) && (prevSelectedFrame != selectedFrame) && (allFrames != 0))
             {
-                float normalizedTime = (float)SelectedFrame / AllFrames;
+                float normalizedTime = (float)selectedFrame / allFrames;
                 SetAnimationFrame(nameClip, normalizedTime);
-                PrevSelectedFrame = SelectedFrame;
+                prevSelectedFrame = selectedFrame;
             }
         }
         

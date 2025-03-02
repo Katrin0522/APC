@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using System.IO;
+using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 
@@ -12,9 +13,34 @@ namespace APC
         public int selectedFrame = 0;
         public int prevSelectedFrame = 0;
         public int allFrames = 0;
+        private bool componentInited;
+
+        public string PathPlugin = "";
+        
+        private bool FirstInit()
+        {
+            var assemblyPath = WindowApc.FindScriptPath("WindowApc.cs");
+            if (assemblyPath == null)
+            {
+                Debug.LogError("Reimport APC plugin");
+                componentInited = false;
+                return false;
+            }
+            else
+            {
+                PathPlugin = assemblyPath;
+                componentInited = true;
+                return true;
+            }
+        }
+        
         private void Start()
         {
-            string controllerPath = "Assets/APC/Temp/customAPCAnim.controller";
+            if (!FirstInit())
+            {
+                return;
+            }
+            string controllerPath = PathPlugin + "/Temp/customAPCAnim.controller";
 
             customAnimatorController = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
 
@@ -29,6 +55,7 @@ namespace APC
 
         private void Update()
         {
+            if (!componentInited) { return; }
             if (avatarAnimator != null && !string.IsNullOrEmpty(nameClip) && (prevSelectedFrame != selectedFrame) && (allFrames != 0))
             {
                 float normalizedTime = (float)selectedFrame / allFrames;
@@ -39,11 +66,10 @@ namespace APC
         
         private void SetAnimationFrame(string animationName, float normalizedTime)
         {
-            
+            if (!componentInited) { return; }
             avatarAnimator.Play(animationName, 0, normalizedTime);
             avatarAnimator.Update(0);
             avatarAnimator.speed = 0f;
-            
         }
     }
 }

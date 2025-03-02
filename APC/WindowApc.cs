@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Reflection;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -22,6 +24,7 @@ namespace APC
 
         private bool isInited = false;
         private bool isChange = false;
+        private bool windowInited = false;
         
         
         private int[] buttonValues = new int[5];
@@ -29,17 +32,45 @@ namespace APC
         private bool[] buttonPressed = new bool[5];
         
         private const int buttonSize = 50;
+
+        private string PathPlugin = "";
         
         
-        [MenuItem("Tools/APC-Tool")]
+        [MenuItem("Tools/APC Tool")]
         private static void Init()
         {
             var inspWndType = typeof(SceneView);
             var window = GetWindow<WindowApc>(inspWndType);
         }
 
+        private bool FirstInit()
+        {
+            var assemblyPath = FindScriptPath("WindowApc.cs");
+            if (assemblyPath == null)
+            {
+                Debug.LogError("[APC] Reimport APC plugin");
+                windowInited = false;
+                return false;
+            }
+            else
+            {
+                PathPlugin = assemblyPath;
+                windowInited = true;
+                return true;
+            }
+        }
+        
         private void OnGUI()
         {
+            if (!windowInited)
+            {
+                if (!FirstInit())
+                {
+                    GUILayout.Label ("Error init with error: 'Reimport APC plugin'", EditorStyles.boldLabel);
+                    return;
+                }
+            }
+
             GUILayout.Space(5);
             GUILayout.Label ("Обьект аватара", EditorStyles.boldLabel);
             AvatarObj = EditorGUILayout.ObjectField(AvatarObj, typeof(GameObject), true) as GameObject;
@@ -112,7 +143,7 @@ namespace APC
                         else
                         {
                             _controllerApc = AvatarObj.GetComponent<ComponentApc>();
-                            Debug.Log("Нет контроллера аватара, получаем");
+                            Debug.Log("[APC] Custom AnimController doesn`t exist, getting new");
                             _controllerApc.allFrames = allFrames;
                             _controllerApc.selectedFrame = sliderValue;
                         }
@@ -123,11 +154,11 @@ namespace APC
                 
                 if (GUILayout.Button("Инициализация анимации"))
                 {
-                    string controllerPath = "Assets/APC/Temp/customAPCAnim.controller";
+                    string controllerPath = PathPlugin + "/Temp/customAPCAnim.controller";
                     
                     AnimatorController animatorController = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
                     
-                    Debug.Log("Animator Controller создан по пути: " + controllerPath);
+                    Debug.Log("[APC] Animator Controller создан по пути: " + controllerPath);
 
                     AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
 
@@ -135,14 +166,14 @@ namespace APC
                     {
                         AnimatorState state = controller.AddMotion(animationSource);
                         
-                        Debug.Log("Animation Clip добавлен в Animator Controller.");
+                        Debug.Log("[APC] Animation Clip добавлен в Animator Controller.");
                         AssetDatabase.SaveAssets();
 
                         ComponentApc component = AvatarObj.GetComponent<ComponentApc>();
 
                         if (component != null)
                         {
-                            Debug.Log("ComponentApc уже существует!");
+                            Debug.Log("[APC] ComponentApc уже существует!");
                             isInited = true;
                         }
                         else
@@ -157,7 +188,7 @@ namespace APC
                     }
                     else
                     {
-                        Debug.LogError("Animator Controller не найден по пути: " + controllerPath);
+                        Debug.LogError("[APC] Animator Controller не найден по пути: " + controllerPath);
                         isInited = false;
                     }
                 }
@@ -200,18 +231,40 @@ namespace APC
 
         private void OnDestroy()
         {
-
+            
             if (AvatarObj)
             {
-                Debug.Log("Закрывается окно == удаляем следы");
                 DestroyImmediate(AvatarObj.GetComponent<ComponentApc>());
             }
 
             if (TempAvatar)
             {
-                Debug.Log("Закрывается окно == удаляем следы");
                 DestroyImmediate(TempAvatar);
+                string controllerPath = PathPlugin + "/Temp/customAPCAnim.controller";
+                File.Delete(controllerPath);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
             }
+        }
+        
+        public static string FindScriptPath(string scriptName)
+        {
+            string assetsPath = Application.dataPath; // Путь к папке Assets
+            string[] files = Directory.GetFiles(assetsPath, scriptName, SearchOption.AllDirectories);
+
+
+            if (files.Length > 0)
+            {
+                string scriptPath = Path.GetDirectoryName(files[0]);
+                string fixScriptPath = scriptPath.Replace("\\", "/");
+                string relativePath = "Assets" + fixScriptPath.Replace(Application.dataPath, "");
+                return relativePath;
+            }
+            else
+            {
+                return null;
+            }
+
         }
     }
 }

@@ -1,19 +1,18 @@
 ﻿using System;
 using System.IO;
-using System.Reflection;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
 
-namespace APC
+namespace APS.Runtime
 {
-    public class WindowApc: EditorWindow
+    public class WindowAPS: EditorWindow
     {
         private AnimationClip animationSource;
         private GameObject AvatarObj;
         private GameObject TempAvatar;
         private AnimationWindow animationWindow;
-        private ComponentApc _controllerApc;
+        private ComponentAPS _controllerAps;
         
         private int sliderValue = -1;
         private int prevSliderValue = 0;
@@ -36,25 +35,32 @@ namespace APC
         private string PathPlugin = "";
         
         
-        [MenuItem("Tools/APC Tool")]
+        [MenuItem("Tools/APS Tool")]
         private static void Init()
         {
-            var inspWndType = typeof(SceneView);
-            var window = GetWindow<WindowApc>(inspWndType);
+            // var inspWndType = typeof(SceneView);
+            var window = GetWindow<WindowAPS>(title:"APS Tool");
         }
 
         private bool FirstInit()
         {
-            var assemblyPath = FindScriptPath("WindowApc.cs");
+            var assemblyPath = FindScriptPath(SharedAPS.ScriptForSearch);
             if (assemblyPath == null)
             {
-                Debug.LogError("[APC] Reimport APC plugin");
+                ErrorLog(SharedAPS.LogErrorFindPath);
                 windowInited = false;
                 return false;
             }
             else
             {
                 PathPlugin = assemblyPath;
+                if (!Directory.Exists(PathPlugin + "/Temp"))
+                {
+                    var folderTemp = Directory.CreateDirectory(PathPlugin + "/Temp");
+                    AssetDatabase.SaveAssets();
+                    AssetDatabase.Refresh();
+                    Log(SharedAPS.LogCreatedTempFolder);
+                }
                 windowInited = true;
                 return true;
             }
@@ -66,27 +72,27 @@ namespace APC
             {
                 if (!FirstInit())
                 {
-                    GUILayout.Label ("Error init with error: 'Reimport APC plugin'", EditorStyles.boldLabel);
+                    GUILayout.Label (SharedAPS.LogErrorWindow, EditorStyles.boldLabel);
                     return;
                 }
             }
 
             GUILayout.Space(5);
-            GUILayout.Label ("Обьект аватара", EditorStyles.boldLabel);
+            GUILayout.Label (SharedAPS.LabelObjectAvatar, EditorStyles.boldLabel);
             AvatarObj = EditorGUILayout.ObjectField(AvatarObj, typeof(GameObject), true) as GameObject;
             GUILayout.Space(5);
-            GUILayout.Label ("Анимация", EditorStyles.boldLabel);
+            GUILayout.Label (SharedAPS.LabelAnimation, EditorStyles.boldLabel);
             animationSource = EditorGUILayout.ObjectField(animationSource, typeof(AnimationClip), false) as AnimationClip;
             GUILayout.Space(15);
             
             if (animationSource && AvatarObj)
             {
-                EditorGUILayout.LabelField("Работа с анимацией", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(SharedAPS.LabelWorkWithAnimation, EditorStyles.boldLabel);
                 GUILayout.Space(5);
 
                 allFrames = (int)animationSource.length * (int)animationSource.frameRate;
-                sliderValue = (int) EditorGUILayout.Slider("Таймлайн анимации", sliderValue, minValue, allFrames);
-                GUILayout.Label($"Выбранный кадр: {sliderValue}");
+                sliderValue = (int) EditorGUILayout.Slider(SharedAPS.LabelTimelineAnimation, sliderValue, minValue, allFrames);
+                GUILayout.Label($"{SharedAPS.LabelSelectedFrame}{sliderValue}");
 
                 GUILayout.BeginHorizontal();
                 for (int i = 0; i < 5; i++)
@@ -122,13 +128,13 @@ namespace APC
                     GUI.backgroundColor = Color.white;
                 }
 
-                if (GUILayout.Button("Очистка", GUILayout.Width(100), GUILayout.Height(buttonSize)))
+                if (GUILayout.Button(SharedAPS.ButtonClear, GUILayout.Width(100), GUILayout.Height(buttonSize)))
                 {
                     isChange = !isChange;
                 }
             
                 GUILayout.EndHorizontal();
-                GUILayout.Label("Режим Очистки: " + (isChange ? "ВКЛ" : "ВЫКЛ"));
+                GUILayout.Label(SharedAPS.ButtonClearMode + (isChange ? SharedAPS.ButtonClearModeOn : SharedAPS.ButtonClearModeOff));
                 
                 
                 if (prevSliderValue != sliderValue)
@@ -136,29 +142,29 @@ namespace APC
                     prevSliderValue = sliderValue;
                     if (EditorApplication.isPlaying)
                     {
-                        if (_controllerApc)
+                        if (_controllerAps)
                         {
-                            _controllerApc.selectedFrame = sliderValue;
+                            _controllerAps.selectedFrame = sliderValue;
                         }
                         else
                         {
-                            _controllerApc = AvatarObj.GetComponent<ComponentApc>();
-                            Debug.Log("[APC] Custom AnimController doesn`t exist, getting new");
-                            _controllerApc.allFrames = allFrames;
-                            _controllerApc.selectedFrame = sliderValue;
+                            _controllerAps = AvatarObj.GetComponent<ComponentAPS>();
+                            Log(SharedAPS.LogAnimControllerNotExist);
+                            _controllerAps.allFrames = allFrames;
+                            _controllerAps.selectedFrame = sliderValue;
                         }
                     }
                 }
 
                 GUILayout.Space(5);
                 
-                if (GUILayout.Button("Инициализация анимации"))
+                if (GUILayout.Button(SharedAPS.ButtonInitizlizeAvatar))
                 {
-                    string controllerPath = PathPlugin + "/Temp/customAPCAnim.controller";
+                    string controllerPath = PathPlugin + "/Temp/customAPSAnim.controller";
                     
                     AnimatorController animatorController = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
                     
-                    Debug.Log("[APC] Animator Controller создан по пути: " + controllerPath);
+                    Log(SharedAPS.LogAnimControllerCreated + controllerPath);
 
                     AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
 
@@ -166,14 +172,14 @@ namespace APC
                     {
                         AnimatorState state = controller.AddMotion(animationSource);
                         
-                        Debug.Log("[APC] Animation Clip добавлен в Animator Controller.");
+                        Log(SharedAPS.LogAnimControllerAdded);
                         AssetDatabase.SaveAssets();
 
-                        ComponentApc component = AvatarObj.GetComponent<ComponentApc>();
+                        ComponentAPS component = AvatarObj.GetComponent<ComponentAPS>();
 
                         if (component != null)
                         {
-                            Debug.Log("[APC] ComponentApc уже существует!");
+                            Log(SharedAPS.LogComponentExits);
                             isInited = true;
                         }
                         else
@@ -182,28 +188,28 @@ namespace APC
                             TempAvatar.gameObject.name = $"{TempAvatar.gameObject.name}_Temp";
                             TempAvatar.gameObject.SetActive(false);
                             
-                            AvatarObj.AddComponent<ComponentApc>();
+                            AvatarObj.AddComponent<ComponentAPS>();
                             isInited = true;
                         }
                     }
                     else
                     {
-                        Debug.LogError("[APC] Animator Controller не найден по пути: " + controllerPath);
+                        ErrorLog(SharedAPS.LogComponentNotExists + controllerPath);
                         isInited = false;
                     }
                 }
 
-                if (allFrames != 0 && AvatarObj && (sliderValue != -1) && _controllerApc && TempAvatar)
+                if (allFrames != 0 && AvatarObj && (sliderValue != -1) && _controllerAps && TempAvatar)
                 {
                     GUILayout.Space(5);
-                    if (GUILayout.Button("Дублировать позу"))
+                    if (GUILayout.Button(SharedAPS.ButtonSavePose))
                     {
                         var copiedObject = Instantiate(TempAvatar, TempAvatar.transform.position + (Vector3.left * counterDublicate), TempAvatar.transform.rotation);
 
                         counterDublicate += 1;
                         copiedObject.gameObject.SetActive(true);
                         copiedObject.gameObject.name = $"{copiedObject.gameObject.name}_{GenerateRandomString(5)}";
-                        var componentCopy = copiedObject.AddComponent<ComponentApc>();
+                        var componentCopy = copiedObject.AddComponent<ComponentAPS>();
                         componentCopy.selectedFrame = sliderValue;
                         componentCopy.allFrames = allFrames;
                     }
@@ -217,7 +223,7 @@ namespace APC
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.FlexibleSpace();
-                GUILayout.Label("Готово! Включай Play!", EditorStyles.boldLabel);
+                GUILayout.Label(SharedAPS.ButtonEnterPlayMode, EditorStyles.boldLabel);
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
             }
@@ -234,13 +240,13 @@ namespace APC
             
             if (AvatarObj)
             {
-                DestroyImmediate(AvatarObj.GetComponent<ComponentApc>());
+                DestroyImmediate(AvatarObj.GetComponent<ComponentAPS>());
             }
 
             if (TempAvatar)
             {
                 DestroyImmediate(TempAvatar);
-                string controllerPath = PathPlugin + "/Temp/customAPCAnim.controller";
+                string controllerPath = PathPlugin + "/Temp/customAPSAnim.controller";
                 File.Delete(controllerPath);
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
@@ -249,22 +255,40 @@ namespace APC
         
         public static string FindScriptPath(string scriptName)
         {
-            string assetsPath = Application.dataPath; // Путь к папке Assets
-            string[] files = Directory.GetFiles(assetsPath, scriptName, SearchOption.AllDirectories);
-
-
-            if (files.Length > 0)
+            string assetsPath = Application.dataPath;
+            try
             {
-                string scriptPath = Path.GetDirectoryName(files[0]);
-                string fixScriptPath = scriptPath.Replace("\\", "/");
-                string relativePath = "Assets" + fixScriptPath.Replace(Application.dataPath, "");
-                return relativePath;
+                string[] files = Directory.GetFiles(assetsPath, scriptName, SearchOption.AllDirectories);
+                if (files.Length > 0)
+                {
+                    string scriptPath = Path.GetDirectoryName(files[0]);
+                    string fixScriptPath = scriptPath.Replace("\\", "/");
+                    string relativePath = "Assets" + fixScriptPath.Replace(Application.dataPath, "");
+                    return relativePath;
+                }
             }
-            else
+            catch (Exception)
             {
                 return null;
             }
 
+            return null;
+        }
+
+        public static void Log(string message)
+        {
+            if (SharedAPS.DebugBool)
+            {
+                Debug.Log("[APS][Log] " + message);
+            }
+        }
+        
+        public static void ErrorLog(string message)
+        {
+            if (SharedAPS.DebugBool)
+            {
+                Debug.LogError("[APS][Error] " + message);
+            }
         }
     }
 }

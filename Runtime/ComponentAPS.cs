@@ -1,37 +1,39 @@
-﻿using System.IO;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
+using static APS.Runtime.WindowAPS;
 
-namespace APC
+namespace APS.Runtime
 {
-    public class ComponentApc: MonoBehaviour
+    public class ComponentAPS: MonoBehaviour
     {
         [SerializeField] private AnimatorController customAnimatorController;
         [SerializeField] private Animator avatarAnimator;
         [SerializeField] private string nameClip;
+        [HideInInspector]
         public int selectedFrame = 0;
+        [HideInInspector]
         public int prevSelectedFrame = 0;
+        [HideInInspector]
         public int allFrames = 0;
         private bool componentInited;
-
-        public string PathPlugin = "";
+        [HideInInspector]
+        public string pathPlugin = "";
         
         private bool FirstInit()
         {
-            var assemblyPath = WindowApc.FindScriptPath("WindowApc.cs");
+            var assemblyPath = FindScriptPath("WindowAPS.cs");
+            
             if (assemblyPath == null)
             {
-                Debug.LogError("Reimport APC plugin");
+                ErrorLog(SharedAPS.LogErrorFindPath);
                 componentInited = false;
                 return false;
             }
-            else
-            {
-                PathPlugin = assemblyPath;
-                componentInited = true;
-                return true;
-            }
+            
+            pathPlugin = assemblyPath;
+            componentInited = true;
+            return true;
         }
         
         private void Start()
@@ -40,7 +42,7 @@ namespace APC
             {
                 return;
             }
-            string controllerPath = PathPlugin + "/Temp/customAPCAnim.controller";
+            string controllerPath = pathPlugin + "/Temp/customAPSAnim.controller";
 
             customAnimatorController = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
 
